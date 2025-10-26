@@ -1,0 +1,13 @@
+[build]
+target = "index.html"
+
+[serve]
+port = 8080
+open = true
+
+[watch]
+ignore = ["dist"]
+
+[[copy]]
+source = "static"
+dest = "static"
