@@ -2,6 +2,8 @@ use yew::prelude::*;
 use yew_router::prelude::*;
 use web_sys::{HtmlInputElement, SubmitEvent, MouseEvent};
 use crate::app::Route;
+use crate::services::api::ApiService;
+use crate::models::LoginRequest as LoginReq;
 
 #[function_component(Login)]
 pub fn login() -> Html {
@@ -48,16 +50,28 @@ pub fn login() -> Html {
             loading_handle.set(true);
             error.set(None);
 
-            // clone loading inside the async block
+            // clone loading and state handles to use inside the async block
             let loading_inner = loading_handle.clone();
             let email_inner = email.clone();
+            let password_inner = password.clone();
+            let error_inner = error.clone();
 
             wasm_bindgen_futures::spawn_local(async move {
-                // mock delay
-                gloo::timers::future::sleep(std::time::Duration::from_millis(800)).await;
-                loading_inner.set(false);
-                // TODO: call ApiService::login
-                web_sys::console::log_1(&format!("Login: {}", *email_inner).into());
+                    // call backend login
+                    let login_req = LoginReq { email: (*email_inner).clone(), password: (*password_inner).clone() };
+                    match ApiService::login(login_req).await {
+                        Ok(user) => {
+                            web_sys::console::log_1(&format!("Logged in user: {:?}", user).into());
+                            // navigate to home or profile after login
+                            // Note: navigation must happen on main thread, so use window.location for simplicity
+                            // Here we just stop loading and optionally navigate
+                        }
+                        Err(err) => {
+                            web_sys::console::error_1(&format!("Login error: {}", err).into());
+                            error_inner.set(Some(err));
+                        }
+                    }
+                    loading_inner.set(false);
             });
         })
     };

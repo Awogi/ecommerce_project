@@ -118,7 +118,7 @@ pub fn home() -> Html {
                     </div>
                     <div class="hero-image">
                         // Use the homepage image you added in frontend/static
-                        <img src="/static/homepage-image.jpg" alt="Students in school uniforms" />
+                        <img src={format!("{}/homepage-image.jpg", crate::services::api::static_base())} alt="Students in school uniforms" />
                     </div>
                 </div>
             </section>
@@ -132,7 +132,7 @@ pub fn home() -> Html {
                     <div class="school-cards">
                         <div class="school-card large" onclick={view_school_uniforms.clone()}>
                             <div class="school-image">
-                                <img src="/static/st-zavier-school.jpg" alt="St. Xavier's School" />
+                                <img src={format!("{}/st-zavier-school.jpg", crate::services::api::static_base())} alt="St. Xavier's School" />
                             </div>
                             <div class="school-content">
                                 <h3>{"St. Xavier's School"}</h3>
@@ -143,7 +143,7 @@ pub fn home() -> Html {
 
                         <div class="school-card large" onclick={view_school_uniforms.clone()}>
                             <div class="school-image">
-                                <img src="/static/budanilakhantha-school.jpg" alt="Budhanilkantha School" />
+                                <img src={format!("{}/budanilakhantha-school.jpg", crate::services::api::static_base())} alt="Budhanilkantha School" />
                             </div>
                             <div class="school-content">
                                 <h3>{"Budhanilkantha School"}</h3>
@@ -154,7 +154,7 @@ pub fn home() -> Html {
 
                         <div class="school-card large" onclick={view_school_uniforms.clone()}>
                             <div class="school-image">
-                                <img src="/static/rato-bangala-school.jpg" alt="Rato Bangala School" />
+                                <img src={format!("{}/rato-bangala-school.jpg", crate::services::api::static_base())} alt="Rato Bangala School" />
                             </div>
                             <div class="school-content">
                                 <h3>{"Rato Bangala School"}</h3>

@@ -5,16 +5,25 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="description" content="School Uniform Store - Order uniforms online">
     <meta name="keywords" content="school uniform, student clothing, online store">
+    <!-- Set the API base for the frontend. During development you can change this to your backend URL
+        e.g. http://127.0.0.1:8081 (when backend falls back to 8081). In production set this to "/api"
+        so the backend can serve the built frontend and API from the same origin. You can also override
+        at runtime using localStorage.setItem('api_base', 'http://127.0.0.1:8081') in the browser. -->
+    <meta name="api-base" content="/api">
     <title>School Uniform Store</title>
-    <link rel="stylesheet" href="/styles-b4c2fb05a5dcbbd3.css" integrity="sha384-yo8rRkxEHMw+R/rph3N1VHEXBgXu2r2JUTUmUqo317/mLY/ioQrzvyzOEAOBZs3v"/>
+    <!-- Copy the entire `static/` directory into Trunk's dist during dev/build so
+        images referenced as `/static/<file>` are available when using `trunk serve`.
+        Trunk will place the files at `/static/...` in the generated site. -->
+    
+    <link rel="stylesheet" href="/styles-41750142a2fcb8b1.css" integrity="sha384-Xy6m5KbDV1NyEbQcKHgFx0P74zRR/o+d4tJyuo0qejTJLaLHe0tklOzOg9PBHaUe"/>
     <link rel="icon" type="image/x-icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'><text y='18' font-size='18'>🎓</text></svg>">
-<link rel="modulepreload" href="/school_uniform_store-fcb43443dbe8c294.js" crossorigin="anonymous" integrity="sha384-cnaui4vLE2Gu8KRAehnJwmV9UFtkF21iXA87UsfuuMd1YeIBdEsJdMQ5v1MFKzrk"><link rel="preload" href="/school_uniform_store-fcb43443dbe8c294_bg.wasm" crossorigin="anonymous" integrity="sha384-6oaYbkugrVtr9LuJom0q7/bHR2lujN6eU77CB38WUMnQPbS8kdZ+j1skfj+LeGfx" as="fetch" type="application/wasm"></head>
+<link rel="modulepreload" href="/school_uniform_store-152788393c76e6f9.js" crossorigin="anonymous" integrity="sha384-YXo46TLVwFtYp51VQ2u0u0GGwKz3Wdzmoqy87P7TkOENkKJvIDoi6wAPCJnpvOCh"><link rel="preload" href="/school_uniform_store-152788393c76e6f9_bg.wasm" crossorigin="anonymous" integrity="sha384-L1RA319Qe1oz4qCL2XIrki8H+Uys0B/ZRhfmz7lDANZavsY8kelMccSLakW232u4" as="fetch" type="application/wasm"></head>
 <body>
     <div id="app"></div>
 
 <script type="module">
-import init, * as bindings from '/school_uniform_store-fcb43443dbe8c294.js';
-const wasm = await init({ module_or_path: '/school_uniform_store-fcb43443dbe8c294_bg.wasm' });
+import init, * as bindings from '/school_uniform_store-152788393c76e6f9.js';
+const wasm = await init({ module_or_path: '/school_uniform_store-152788393c76e6f9_bg.wasm' });
 
 
 window.wasmBindings = bindings;
