@@ -1,7 +1,7 @@
 use yew::prelude::*;
 use wasm_bindgen_futures::spawn_local;
 
-use crate::models::{Uniform, School, Grade, UniformCategory, FilterState};
+use crate::models::{Uniform, School, Grade, UniformCategory, FilterState, CartItem, AppState};
 use crate::components::{ProductCard, FilterSidebar, Loading};
 
 #[function_component(Catalog)]
@@ -28,9 +28,9 @@ pub fn catalog() -> Html {
                 spawn_local(async move {
                     // Mock data for now - in real app, these would be API calls
                     let mock_schools = vec![
-                        School { id: 1, name: "Greenwood Elementary".to_string(), address: None, contact_info: None },
-                        School { id: 2, name: "Riverside Middle School".to_string(), address: None, contact_info: None },
-                        School { id: 3, name: "Summit High School".to_string(), address: None, contact_info: None },
+                        School { id: 1, name: "St. Xavier's School".to_string(), address: None, contact_info: None },
+                        School { id: 2, name: "Budhanilkantha School".to_string(), address: None, contact_info: None },
+                        School { id: 3, name: "Rato Bangala School".to_string(), address: None, contact_info: None },
                     ];
 
                     let mock_grades = vec![
@@ -51,6 +51,7 @@ pub fn catalog() -> Html {
                     // in your frontend/static folder (e.g. navy_polo_300.png, khaki_pants_300.png, etc.).
                     // Map mock items to the images you added in frontend/static.
                     // If you rename files, update these paths accordingly.
+                    let sb = crate::services::api::static_base();
                     let mock_uniforms = vec![
                         Uniform {
                             id: 1,
@@ -62,7 +63,7 @@ pub fn catalog() -> Html {
                             price: 25.99,
                             stock_quantity: Some(15),
                             // Using a blue school image that exists in static (sanitized filename)
-                            image_url: Some("/static/blue-school-uniform.jpg".to_string()),
+                            image_url: Some(format!("{}/blue-school-uniform.jpg", sb)),
                         },
                         Uniform {
                             id: 2,
@@ -74,7 +75,7 @@ pub fn catalog() -> Html {
                             price: 35.99,
                             stock_quantity: Some(8),
                             // fallback to a pants image you added (sanitized filename)
-                            image_url: Some("/static/black-pant.jpg".to_string()),
+                            image_url: Some(format!("{}/black-pant.jpg", sb)),
                         },
                         Uniform {
                             id: 3,
@@ -85,7 +86,7 @@ pub fn catalog() -> Html {
                             size: Some("L".to_string()),
                             price: 89.99,
                             stock_quantity: Some(3),
-                            image_url: Some("/static/blue-blezer.jpg".to_string()),
+                            image_url: Some(format!("{}/blue-blezer.jpg", sb)),
                         },
                         Uniform {
                             id: 4,
@@ -96,7 +97,7 @@ pub fn catalog() -> Html {
                             size: Some("S".to_string()),
                             price: 28.99,
                             stock_quantity: Some(0),
-                            image_url: Some("/static/white-shirt-male.jpg".to_string()),
+                            image_url: Some(format!("{}/white-shirt-male.jpg", sb)),
                         },
                     ];
 
@@ -120,10 +121,29 @@ pub fn catalog() -> Html {
         })
     };
 
-    let on_add_to_cart = Callback::from(move |uniform: Uniform| {
-        // TODO: Add to cart logic
-        web_sys::console::log_1(&format!("Added to cart: {}", uniform.name).into());
-    });
+    // Access global app state from context (if available) and update cart items there.
+    let app_ctx = use_context::<UseStateHandle<AppState>>();
+
+    let on_add_to_cart = {
+        let app_ctx = app_ctx.clone();
+        Callback::from(move |uniform: Uniform| {
+            web_sys::console::log_1(&format!("Added to cart: {}", uniform.name).into());
+            // Build a CartItem and push into the app context if present. Otherwise just log.
+            if let Some(app_state) = &app_ctx {
+                // Explicitly clone the inner AppState (avoid cloning the UseStateHandle itself)
+                let mut new_state = <AppState as Clone>::clone(&*app_state);
+                let item = CartItem {
+                    id: None,
+                    uniform_id: uniform.id,
+                    uniform: Some(uniform.clone()),
+                    quantity: 1,
+                    price_at_time: uniform.price,
+                };
+                new_state.cart_items.push(item);
+                app_state.set(new_state);
+            }
+        })
+    };
 
     // Filter uniforms based on current filters
     let filtered_uniforms = {

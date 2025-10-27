@@ -1,7 +1,10 @@
 use yew::prelude::*;
 use yew_router::prelude::*;
-use web_sys::MouseEvent;
+use web_sys::{HtmlInputElement, MouseEvent};
+use wasm_bindgen_futures::spawn_local;
 use crate::app::Route;
+use crate::services::api::ApiService;
+use crate::models::RegisterRequest as RegisterReq;
 
 #[function_component(Signup)]
 pub fn signup() -> Html {
@@ -9,6 +12,104 @@ pub fn signup() -> Html {
     let go_to_login = {
         let navigator = navigator.clone();
         Callback::from(move |_: MouseEvent| navigator.push(&Route::Login))
+    };
+
+    // form state
+    let first_name = use_state(String::new);
+    let last_name = use_state(String::new);
+    let email = use_state(String::new);
+    let password = use_state(String::new);
+    let confirm_password = use_state(String::new);
+    let loading = use_state(|| false);
+    let error = use_state(|| None::<String>);
+
+    let on_first_name_change = {
+        let first_name = first_name.clone();
+        Callback::from(move |e: Event| {
+            let input: HtmlInputElement = e.target_unchecked_into();
+            first_name.set(input.value());
+        })
+    };
+
+    let on_last_name_change = {
+        let last_name = last_name.clone();
+        Callback::from(move |e: Event| {
+            let input: HtmlInputElement = e.target_unchecked_into();
+            last_name.set(input.value());
+        })
+    };
+
+    let on_email_change = {
+        let email = email.clone();
+        Callback::from(move |e: Event| {
+            let input: HtmlInputElement = e.target_unchecked_into();
+            email.set(input.value());
+        })
+    };
+
+    let on_password_change = {
+        let password = password.clone();
+        Callback::from(move |e: Event| {
+            let input: HtmlInputElement = e.target_unchecked_into();
+            password.set(input.value());
+        })
+    };
+
+    let on_confirm_password_change = {
+        let confirm_password = confirm_password.clone();
+        Callback::from(move |e: Event| {
+            let input: HtmlInputElement = e.target_unchecked_into();
+            confirm_password.set(input.value());
+        })
+    };
+
+    let on_submit = {
+        let first_name = first_name.clone();
+        let last_name = last_name.clone();
+        let email = email.clone();
+        let password = password.clone();
+        let confirm_password = confirm_password.clone();
+        let loading = loading.clone();
+        let error = error.clone();
+        let navigator = navigator.clone();
+
+        Callback::from(move |_: MouseEvent| {
+            // debug log to ensure click handler is invoked in the browser console
+            web_sys::console::log_1(&"Signup button clicked".into());
+            // simple validation
+            if (*password).is_empty() || *password != *confirm_password {
+                error.set(Some("Passwords do not match".into()));
+                return;
+            }
+
+            loading.set(true);
+            error.set(None);
+
+            let first_name = first_name.clone();
+            let last_name = last_name.clone();
+            let email = email.clone();
+            let password = password.clone();
+            let loading_inner = loading.clone();
+            let error_inner = error.clone();
+            let navigator_inner = navigator.clone();
+
+            spawn_local(async move {
+                let full_name = format!("{} {}", (*first_name).trim(), (*last_name).trim());
+                let req = RegisterReq { full_name, email: (*email).clone(), password: (*password).clone(), role: None };
+                match ApiService::register(req).await {
+                    Ok(user) => {
+                        web_sys::console::log_1(&format!("Registered user: {:?}", user).into());
+                        // navigate to login page
+                        navigator_inner.push(&Route::Login);
+                    }
+                    Err(err_msg) => {
+                        web_sys::console::error_1(&format!("Register error: {}", err_msg).into());
+                        error_inner.set(Some(err_msg));
+                    }
+                }
+                loading_inner.set(false);
+            });
+        })
     };
 
     html! {
@@ -35,14 +136,14 @@ pub fn signup() -> Html {
                                 <label class="form-label">{"First Name"}</label>
                                 <div class="form-input" style="display:flex; align-items:center; gap:0.5rem; padding:0.5rem 0.75rem; border-radius:8px; background:var(--bg-secondary);">
                                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M12 12a5 5 0 100-10 5 5 0 000 10z"></path><path d="M2 22a10 10 0 0120 0"></path></svg>
-                                    <input class="form-input" type="text" placeholder="John" style="border:none; background:transparent; width:100%" />
+                                    <input class="form-input" type="text" placeholder="John" value={(*first_name).clone()} onchange={on_first_name_change} style="border:none; background:transparent; width:100%" />
                                 </div>
                             </div>
 
                             <div>
                                 <label class="form-label">{"Last Name"}</label>
                                 <div class="form-input" style="display:flex; align-items:center; gap:0.5rem; padding:0.5rem 0.75rem; border-radius:8px; background:var(--bg-secondary);">
-                                    <input class="form-input" type="text" placeholder="Doe" style="border:none; background:transparent; width:100%" />
+                                    <input class="form-input" type="text" placeholder="Doe" value={(*last_name).clone()} onchange={on_last_name_change} style="border:none; background:transparent; width:100%" />
                                 </div>
                             </div>
                         </div>
@@ -51,7 +152,7 @@ pub fn signup() -> Html {
                             <label class="form-label">{"Email"}</label>
                             <div class="form-input" style="display:flex; align-items:center; gap:0.5rem; padding:0.5rem 0.75rem; border-radius:8px; background:var(--bg-secondary);">
                                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M3 8l9 6 9-6"></path><path d="M21 19H3v-8"></path></svg>
-                                <input class="form-input" type="email" placeholder="john@example.com" style="border:none; background:transparent; width:100%" />
+                                <input class="form-input" type="email" placeholder="john@example.com" value={(*email).clone()} onchange={on_email_change} style="border:none; background:transparent; width:100%" />
                             </div>
                         </div>
 
@@ -67,7 +168,7 @@ pub fn signup() -> Html {
                             <label class="form-label">{"Password"}</label>
                             <div class="form-input" style="display:flex; align-items:center; gap:0.5rem; padding:0.5rem 0.75rem; border-radius:8px; background:var(--bg-secondary);">
                                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="11" width="18" height="11" rx="2"></rect><path d="M7 11V7a5 5 0 0110 0v4"></path></svg>
-                                <input class="form-input" type="password" placeholder="Create a password" style="border:none; background:transparent; width:100%" />
+                                <input class="form-input" type="password" placeholder="Create a password" value={(*password).clone()} onchange={on_password_change} style="border:none; background:transparent; width:100%" />
                                 <button type="button" style="background:none; border:none; color:var(--text-secondary);">{ html!(<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M2.5 12s3-7 9.5-7 9.5 7 9.5 7-3 7-9.5 7S2.5 12 2.5 12z"></path><circle cx="12" cy="12" r="3"></circle></svg>) }</button>
                             </div>
                         </div>
@@ -76,7 +177,7 @@ pub fn signup() -> Html {
                             <label class="form-label">{"Confirm Password"}</label>
                             <div class="form-input" style="display:flex; align-items:center; gap:0.5rem; padding:0.5rem 0.75rem; border-radius:8px; background:var(--bg-secondary);">
                                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="11" width="18" height="11" rx="2"></rect><path d="M7 11V7a5 5 0 0110 0v4"></path></svg>
-                                <input class="form-input" type="password" placeholder="Confirm your password" style="border:none; background:transparent; width:100%" />
+                                <input class="form-input" type="password" placeholder="Confirm your password" value={(*confirm_password).clone()} onchange={on_confirm_password_change} style="border:none; background:transparent; width:100%" />
                                 <button type="button" style="background:none; border:none; color:var(--text-secondary);">{ html!(<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M2.5 12s3-7 9.5-7 9.5 7 9.5 7-3 7-9.5 7S2.5 12 2.5 12z"></path><circle cx="12" cy="12" r="3"></circle></svg>) }</button>
                             </div>
                         </div>
@@ -87,7 +188,7 @@ pub fn signup() -> Html {
                         </label>
 
                         <div style="margin-bottom:1rem;">
-                            <button class="auth-submit-btn" type="button" style="width:100%; background:#15786f; border-radius:10px; padding:0.95rem 1rem;">{"Create Account"}</button>
+                            <button class="auth-submit-btn" type="button" onclick={on_submit} disabled={*loading} style="width:100%; background:#15786f; border-radius:10px; padding:0.95rem 1rem;">{ if *loading { html!{ <><div class="loading-spinner small"></div>{"Creating..."}</> } } else { html!{"Create Account"} } }</button>
                         </div>
 
                         <div style="display:flex; align-items:center; gap:1rem; margin:1rem 0; align-self:stretch;">

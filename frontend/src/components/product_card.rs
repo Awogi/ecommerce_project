@@ -20,10 +20,20 @@ pub fn product_card(props: &ProductCardProps) -> Html {
         })
     };
 
-    // Use an existing static asset as the fallback image. Adjust if you rename files.
-    let default_image = "/static/white-shirt-male.jpg".to_string();
+    // Use a runtime-resolved static base so dev (backend host:port) and production both work.
+    let default_image = format!("{}/white-shirt-male.jpg", crate::services::api::static_base());
     let image_url = uniform.image_url.as_ref()
-        .unwrap_or(&default_image);
+        .map(|s| {
+            // If the stored image is an absolute "/static/..." path, convert it to the
+            // resolved static base for the current environment. If it already looks like
+            // a full URL, keep it as-is.
+            if s.starts_with("/static/") {
+                format!("{}/{}", crate::services::api::static_base(), s.trim_start_matches("/static/"))
+            } else {
+                s.clone()
+            }
+        })
+        .unwrap_or(default_image);
 
     let stock_status = match uniform.stock_quantity {
         Some(qty) if qty > 0 => "In Stock",

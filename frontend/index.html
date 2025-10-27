@@ -5,7 +5,16 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="description" content="School Uniform Store - Order uniforms online">
     <meta name="keywords" content="school uniform, student clothing, online store">
+    <!-- Set the API base for the frontend. During development you can change this to your backend URL
+        e.g. http://127.0.0.1:8081 (when backend falls back to 8081). In production set this to "/api"
+        so the backend can serve the built frontend and API from the same origin. You can also override
+        at runtime using localStorage.setItem('api_base', 'http://127.0.0.1:8081') in the browser. -->
+    <meta name="api-base" content="/api">
     <title>School Uniform Store</title>
+    <!-- Copy the entire `static/` directory into Trunk's dist during dev/build so
+        images referenced as `/static/<file>` are available when using `trunk serve`.
+        Trunk will place the files at `/static/...` in the generated site. -->
+    <link data-trunk rel="copy-dir" href="static">
     <link data-trunk rel="css" href="src/styles.css">
     <link rel="icon" type="image/x-icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'><text y='18' font-size='18'>🎓</text></svg>">
 </head>

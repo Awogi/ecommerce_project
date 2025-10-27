@@ -94,7 +94,7 @@ pub struct ApiResponse<T> {
 }
 
 // Application State
-#[derive(Clone, Debug, Default)]
+#[derive(Clone, Debug, Default, PartialEq)]
 pub struct AppState {
     pub current_user: Option<User>,
     pub selected_school: Option<School>,

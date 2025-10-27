@@ -1,14 +1,76 @@
-use gloo_net::http::{Request, Response};
-use serde::{Deserialize, Serialize};
-use wasm_bindgen_futures::spawn_local;
+use gloo_net::http::Request;
+use serde::Serialize;
 use crate::models::{
     User, School, Grade, UniformCategory, Uniform, CartItem, Order, 
     LoginRequest, RegisterRequest, ApiResponse
 };
 
-// During development the backend runs on http://127.0.0.1:8080 by default (see backend/.env)
-// You can change this or wire it to an env/config value as needed.
-const API_BASE: &str = "http://127.0.0.1:8080";
+// Determine API base URL at runtime using this precedence:
+// 1. localStorage['api_base'] (dev override)
+// 2. <meta name="api-base" content="..."> in index.html
+// 3. fallback to "http://127.0.0.1:8080"
+fn api_base() -> String {
+    // 1) localStorage override
+    if let Some(win) = web_sys::window() {
+        if let Ok(Some(storage)) = win.local_storage() {
+            if let Ok(Some(override_val)) = storage.get_item("api_base") {
+                if !override_val.is_empty() {
+                    // Normalize overrides so they always target the API scope.
+                    // If user stored `http://127.0.0.1:8080` we want `http://127.0.0.1:8080/api`.
+                    let mut base = override_val.trim_end_matches('/').to_string();
+                    if !base.ends_with("/api") {
+                        base.push_str("/api");
+                    }
+                    return base;
+                }
+            }
+        }
+
+        // 2) meta tag in index.html
+        if let Some(doc) = win.document() {
+            if let Ok(Some(el)) = doc.query_selector("meta[name=\\\"api-base\\\"]") {
+                if let Some(content) = el.get_attribute("content") {
+                    // If meta is set to a relative "/api" (production default) but we're running
+                    // the frontend on a different dev port (e.g. trunk at 8082), try the local
+                    // backend URL at 127.0.0.1:8080 for convenience so developers don't need to
+                    // set localStorage manually.
+                    if content == "/api" {
+                        // Inspect current location port. If it's not 8080, prefer 127.0.0.1:8080
+                        if let Some(loc) = win.location().port().ok().filter(|p| !p.is_empty()) {
+                            if loc != "8080" {
+                                return format!("http://127.0.0.1:8080{}", content);
+                            }
+                        }
+                    }
+                    return content;
+                }
+            }
+        }
+    }
+
+    // 3) default fallback
+    "http://127.0.0.1:8080".to_string()
+}
+
+// Return base URL for static assets. If the api_base() returns a full URL (e.g. http://127.0.0.1:8081/api)
+// we convert that into the corresponding static base (http://127.0.0.1:8081/static). If api_base()
+// is a relative "/api" value, we return the relative "/static" so assets are requested from the
+// same origin as the page.
+pub fn static_base() -> String {
+    let base = api_base();
+    if base.starts_with("http://") || base.starts_with("https://") {
+        // strip trailing slash and the '/api' suffix if present
+        let no_trail = base.trim_end_matches('/');
+        if no_trail.ends_with("/api") {
+            let host = no_trail.trim_end_matches("/api");
+            return format!("{}/static", host);
+        }
+        return format!("{}/static", no_trail);
+    }
+
+    // Relative api_base (e.g. "/api") -> use relative /static
+    "/static".to_string()
+}
 
 pub struct ApiService;
 
@@ -31,7 +93,7 @@ impl ApiService {
     // Authentication endpoints
     pub async fn login(credentials: LoginRequest) -> Result<User, String> {
     // Backend exposes user auth under /users
-    let response = Request::post(&format!("{}/users/login", API_BASE))
+    let response = Request::post(&format!("{}/users/login", api_base()))
             .header("Content-Type", "application/json")
             .json(&credentials)
             .map_err(|e| format!("Failed to serialize request: {}", e))?
@@ -55,7 +117,7 @@ impl ApiService {
     }
 
     pub async fn register(user_data: RegisterRequest) -> Result<User, String> {
-    let response = Request::post(&format!("{}/users/register", API_BASE))
+    let response = Request::post(&format!("{}/users/register", api_base()))
             .header("Content-Type", "application/json")
             .json(&user_data)
             .map_err(|e| format!("Failed to serialize request: {}", e))?
@@ -80,7 +142,7 @@ impl ApiService {
 
     // Schools endpoints
     pub async fn get_schools() -> Result<Vec<School>, String> {
-        let response = Request::get(&format!("{}/schools", API_BASE))
+        let response = Request::get(&format!("{}/schools", api_base()))
             .send()
             .await
             .map_err(|e| format!("Network error: {}", e))?;
@@ -98,7 +160,7 @@ impl ApiService {
 
     // Grades endpoints
     pub async fn get_grades() -> Result<Vec<Grade>, String> {
-        let response = Request::get(&format!("{}/grades", API_BASE))
+        let response = Request::get(&format!("{}/grades", api_base()))
             .send()
             .await
             .map_err(|e| format!("Network error: {}", e))?;
@@ -116,7 +178,7 @@ impl ApiService {
 
     // Categories endpoints
     pub async fn get_categories() -> Result<Vec<UniformCategory>, String> {
-        let response = Request::get(&format!("{}/uniform-categories", API_BASE))
+        let response = Request::get(&format!("{}/uniform-categories", api_base()))
             .send()
             .await
             .map_err(|e| format!("Network error: {}", e))?;
@@ -134,7 +196,7 @@ impl ApiService {
 
     // Uniforms endpoints
     pub async fn get_uniforms() -> Result<Vec<Uniform>, String> {
-        let response = Request::get(&format!("{}/uniforms", API_BASE))
+        let response = Request::get(&format!("{}/uniforms", api_base()))
             .send()
             .await
             .map_err(|e| format!("Network error: {}", e))?;
@@ -151,7 +213,7 @@ impl ApiService {
     }
 
     pub async fn get_uniform(id: i32) -> Result<Uniform, String> {
-        let response = Request::get(&format!("{}/uniforms/{}", API_BASE, id))
+        let response = Request::get(&format!("{}/uniforms/{}", api_base(), id))
             .send()
             .await
             .map_err(|e| format!("Network error: {}", e))?;
@@ -169,7 +231,7 @@ impl ApiService {
 
     // Cart endpoints
     pub async fn get_cart(user_id: i32) -> Result<Vec<CartItem>, String> {
-        let mut req = Request::get(&format!("{}/cart/{}", API_BASE, user_id));
+    let mut req = Request::get(&format!("{}/cart/{}", api_base(), user_id));
         if let Some(auth) = ApiService::auth_header() {
             req = req.header("Authorization", &auth);
         }
@@ -197,7 +259,7 @@ impl ApiService {
 
         let request_data = AddToCartRequest { uniform_id, quantity };
 
-        let response = Request::post(&format!("{}/cart/{}", API_BASE, user_id))
+        let response = Request::post(&format!("{}/cart/{}", api_base(), user_id))
             .header("Content-Type", "application/json")
             .json(&request_data)
             .map_err(|e| format!("Failed to serialize request: {}", e))?
@@ -217,7 +279,7 @@ impl ApiService {
     }
 
     pub async fn remove_from_cart(user_id: i32, uniform_id: i32) -> Result<(), String> {
-        let mut req = Request::delete(&format!("{}/cart/{}/items/{}", API_BASE, user_id, uniform_id));
+    let mut req = Request::delete(&format!("{}/cart/{}/items/{}", api_base(), user_id, uniform_id));
         if let Some(auth) = ApiService::auth_header() {
             req = req.header("Authorization", &auth);
         }
@@ -234,7 +296,7 @@ impl ApiService {
 
     // Orders endpoints
     pub async fn get_orders(user_id: i32) -> Result<Vec<Order>, String> {
-        let mut req = Request::get(&format!("{}/orders/user/{}", API_BASE, user_id));
+    let mut req = Request::get(&format!("{}/orders/user/{}", api_base(), user_id));
         if let Some(auth) = ApiService::auth_header() {
             req = req.header("Authorization", &auth);
         }
@@ -261,7 +323,7 @@ impl ApiService {
 
         let request_data = CreateOrderRequest { user_id };
 
-        let response = Request::post(&format!("{}/orders", API_BASE))
+        let response = Request::post(&format!("{}/orders", api_base()))
             .header("Content-Type", "application/json")
             .json(&request_data)
             .map_err(|e| format!("Failed to serialize request: {}", e))?
